@@ -8,3 +8,5 @@ runs/
 test_recorded_depth/
 ultralytics_analytics.avi/
 test_clear_recorded_depth/
+Log/
+*.log
