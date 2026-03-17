@@ -1,4 +1,5 @@
 .venv/
+.venv_filterrepo/
 PoseEstimationSurgicalTools/
 POV_Surgery_data/
 pyorbbecsdk/examples/object_detection/models/
@@ -10,3 +11,11 @@ ultralytics_analytics.avi/
 test_clear_recorded_depth/
 Log/
 *.log
+*.pt
+*.onnx
+*.mp4
+*.avi
+*.pkl
+*.dll
+*.so
+*.so.*
