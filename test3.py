@@ -1,23 +1,8 @@
-# ******************************************************************************
-#  Copyright (c) 2024 Orbbec 3D Technology, Inc
-#
-#  Licensed under the Apache License, Version 2.0 (the "License");
-#  you may not use this file except in compliance with the License.
-#  You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Unless required by applicable law or agreed to in writing, software
-#  distributed under the License is distributed on an "AS IS" BASIS,
-#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  See the License for the specific language governing permissions and
-#  limitations under the License.
-# ******************************************************************************
 import cv2
 import numpy as np
 
 from pyorbbecsdk import *
-from utils import frame_to_bgr_image
+#from utils import frame_to_bgr_image ###OpenCV returns frames as BGR images already
 
 # --- Configuration Constants ---
 ESC_KEY = 27
@@ -29,6 +14,8 @@ def main():
     cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
     cv2.resizeWindow(window_name, 1280, 720)
 
+    cap = cv2.VideoCapture(0) ###Create the RGB camera
+
     # Initialize the pipeline and configuration objects
     pipeline = Pipeline()
     config = Config()
@@ -38,10 +25,10 @@ def main():
     align_mode = 0 # 0: Depth to Color (D2C), 1: Color to Depth (C2D)
     
     try:
-        # 1. Setup Color Stream Profile
-        profile_list = pipeline.get_stream_profile_list(OBSensorType.COLOR_SENSOR)
-        color_profile = profile_list.get_video_stream_profile(0, 0, OBFormat.RGB, 0)
-        config.enable_stream(color_profile)
+        # 1. Setup Color Stream Profile ###Will not stream from OBSensor
+        # profile_list = pipeline.get_stream_profile_list(OBSensorType.COLOR_SENSOR)
+        # color_profile = profile_list.get_video_stream_profile(0, 0, OBFormat.RGB, 0)
+        # config.enable_stream(color_profile)
         
         # 2. Setup Depth Stream Profile
         profile_list = pipeline.get_stream_profile_list(OBSensorType.DEPTH_SENSOR)
@@ -49,7 +36,7 @@ def main():
         config.enable_stream(depth_profile)
         
         # 3. Ensure pipeline waits for a full frameset (Color + Depth) before outputting
-        config.set_frame_aggregate_output_mode(OBFrameAggregateOutputMode.FULL_FRAME_REQUIRE)
+        #config.set_frame_aggregate_output_mode(OBFrameAggregateOutputMode.FULL_FRAME_REQUIRE)
     except Exception as e:
         print(f"Stream configuration error: {e}")
         return
@@ -82,7 +69,11 @@ def main():
             if not frames:
                 continue
                 
-            color_frame = frames.get_color_frame()
+            #color_frame = frames.get_color_frame() ###Changed to OpenCV
+            ret, color_image = cap.read()
+            if not ret:
+                print("Frame grab failed")
+                break
             depth_frame = frames.get_depth_frame()
             
             if not color_frame or not depth_frame:
@@ -102,10 +93,10 @@ def main():
                 continue
 
             # Convert raw color frame to BGR for OpenCV rendering
-            color_image = frame_to_bgr_image(color_frame)
-            if color_image is None:
-                print("Failed to convert color frame")
-                continue
+            # color_image = frame_to_bgr_image(color_frame)
+            # if color_image is None:
+            #     print("Failed to convert color frame")
+            #     continue
                 
             # --- Depth Image Processing ---
             try:
@@ -124,6 +115,8 @@ def main():
             depth_data = depth_data.astype(np.uint16)
             depth_image = cv2.normalize(depth_data, None, 0, 255, cv2.NORM_MINMAX)
             depth_image = cv2.applyColorMap(depth_image.astype(np.uint8), cv2.COLORMAP_JET)
+
+            depth_image = cv2.resize(depth_image, (color_image.shape[1], color_image.shape[0])) ###Added to ensure resize
             
             # --- Blended Visualization ---
             # Alpha-blending of Color and Depth images to check alignment accuracy
@@ -163,10 +156,14 @@ def main():
                     
         except KeyboardInterrupt:
             break
+        except Exception as e:
+            print(f"Runtime error: {e}")
+            continue
         
     # Clean up resources
     cv2.destroyAllWindows()
     pipeline.stop()
+    cap.release()
 
 if __name__ == "__main__":
     main()

@@ -1,3 +1,4 @@
 .venv/
-./PoseEstimationSurgicalTools/
-./POV_Surgery_data
+PoseEstimationSurgicalTools/
+POV_Surgery_data/
+pyorbbecsdk/examples/object_detection/models
